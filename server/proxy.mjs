@@ -225,7 +225,7 @@ async function fetchProxyResponse(target, redirects = 0) {
   }
   const contentType = upstream.headers["content-type"] ?? "application/octet-stream";
   const mime = contentType.split(";")[0].trim().toLowerCase();
-  const allowedMime = /^(text\/(html|css|plain|javascript)|application\/(xhtml\+xml|javascript|x-javascript|json|xml|wasm)|image\/|font\/|application\/(font|vnd\.ms-fontobject)|audio\/|video\/)/;
+  const allowedMime = /^(text\/(html|css|plain|javascript)|application\/(xhtml\+xml|javascript|x-javascript|json|xml|wasm)|model\/(gltf-binary|gltf\+json)|image\/|font\/|application\/(font|vnd\.ms-fontobject)|audio\/|video\/)/;
   if (status < 200 || status >= 300 || !allowedMime.test(mime)) {
     upstream.resume();
     request.destroy();
@@ -251,7 +251,7 @@ async function fetchProxyResponse(target, redirects = 0) {
 }
 
 function isCacheableAsset(target) {
-  return /\.(?:css|js|mjs|woff2?|ttf|otf|png|jpe?g|gif|webp|avif|svg|ico)(?:$|[?#])/i.test(target.pathname);
+  return /\.(?:css|js|mjs|woff2?|ttf|otf|png|jpe?g|gif|webp|avif|svg|ico|glb|gltf)(?:$|[?#])/i.test(target.pathname);
 }
 
 function cacheAsset(key, result) {
