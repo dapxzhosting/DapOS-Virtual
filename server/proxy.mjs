@@ -10,10 +10,14 @@ import { fileURLToPath } from "node:url";
 const root = resolve(fileURLToPath(new URL("../dist", import.meta.url)));
 const port = Number(process.env.PORT ?? 8787);
 const MAX_PROXY_BYTES = 8 * 1024 * 1024;
+const MAX_CACHE_BYTES = 32 * 1024 * 1024;
+const MAX_CACHE_ENTRIES = 512;
 const MAX_PROXY_REDIRECTS = 5;
 const MAX_PROXY_URL_LENGTH = 4096;
 const RATE_LIMIT = 900;
 const RATE_WINDOW = 60_000;
+const DNS_CACHE_TTL = 60_000;
+const ASSET_CACHE_TTL = 10 * 60_000;
 const allowedDomains = [
   "wikipedia.org",
   "wikimedia.org",
@@ -52,6 +56,11 @@ for (const subnet of [
   blockedAddresses.addSubnet(subnet[0], subnet[1], subnet[2]);
 }
 const requestCounts = new Map();
+const dnsCache = new Map();
+const assetCache = new Map();
+const pendingAssets = new Map();
+const httpsAgent = new https.Agent({ keepAlive: true, maxSockets: 64, maxFreeSockets: 16, timeout: 15_000 });
+let assetCacheBytes = 0;
 const mimeTypes = {
   ".avif": "image/avif",
   ".css": "text/css; charset=utf-8",
@@ -166,7 +175,13 @@ async function validateTarget(target) {
   }
   const host = target.hostname.replace(/^\[|\]$/g, "");
   if (isIP(host)) throw new Error("IP address URLs are not allowed.");
-  const addresses = await lookup(host, { all: true, verbatim: true });
+  const cached = dnsCache.get(host);
+  let addresses = cached && cached.expiresAt > Date.now() ? cached.addresses : null;
+  if (!addresses) {
+    addresses = await lookup(host, { all: true, verbatim: true });
+    if (dnsCache.size >= MAX_CACHE_ENTRIES) dnsCache.delete(dnsCache.keys().next().value);
+    dnsCache.set(host, { addresses, expiresAt: Date.now() + DNS_CACHE_TTL });
+  }
   if (!addresses.length || addresses.some(({ address }) => !isPublicAddress(address))) {
     throw new Error("The destination resolved to a non-public network address.");
   }
@@ -177,6 +192,7 @@ function fetchTarget(target, address) {
   return new Promise((resolveResponse, reject) => {
     const family = isIP(address.address);
     const request = https.get(target, {
+      agent: httpsAgent,
       headers: {
         "accept": "text/html, text/css, application/javascript, application/json, image/*, font/*, */*;q=0.5",
         "accept-encoding": "identity",
@@ -194,7 +210,7 @@ function fetchTarget(target, address) {
   });
 }
 
-async function proxyRequest(target, redirects = 0) {
+async function fetchProxyResponse(target, redirects = 0) {
   const address = await validateTarget(target);
   const { request, upstream } = await fetchTarget(target, address);
   const status = upstream.statusCode ?? 502;
@@ -204,7 +220,7 @@ async function proxyRequest(target, redirects = 0) {
       request.destroy();
       throw new Error("The destination redirected too many times.");
     }
-    return proxyRequest(new URL(upstream.headers.location, target), redirects + 1);
+    return fetchProxyResponse(new URL(upstream.headers.location, target), redirects + 1);
   }
   const contentType = upstream.headers["content-type"] ?? "application/octet-stream";
   const mime = contentType.split(";")[0].trim().toLowerCase();
@@ -231,6 +247,44 @@ async function proxyRequest(target, redirects = 0) {
     body = Buffer.from(rewriteCss(body.toString("utf8"), target.href));
   }
   return { status, contentType, body };
+}
+
+function isCacheableAsset(target) {
+  return /\.(?:css|js|mjs|woff2?|ttf|otf|png|jpe?g|gif|webp|avif|svg|ico)(?:$|[?#])/i.test(target.pathname);
+}
+
+function cacheAsset(key, result) {
+  if (result.status < 200 || result.status >= 300 || result.body.length > MAX_CACHE_BYTES) return;
+  const previous = assetCache.get(key);
+  if (previous) assetCacheBytes -= previous.result.body.length;
+  while ((assetCacheBytes + result.body.length > MAX_CACHE_BYTES || assetCache.size >= MAX_CACHE_ENTRIES) && assetCache.size) {
+    const oldestKey = assetCache.keys().next().value;
+    if (oldestKey === undefined) break;
+    const oldest = assetCache.get(oldestKey);
+    if (oldest) assetCacheBytes -= oldest.result.body.length;
+    assetCache.delete(oldestKey);
+  }
+  assetCache.set(key, { result, expiresAt: Date.now() + ASSET_CACHE_TTL });
+  assetCacheBytes += result.body.length;
+}
+
+async function proxyRequest(target) {
+  if (!isCacheableAsset(target)) return fetchProxyResponse(target);
+  const key = target.href;
+  const cached = assetCache.get(key);
+  if (cached && cached.expiresAt > Date.now()) return cached.result;
+  if (cached) {
+    assetCache.delete(key);
+    assetCacheBytes -= cached.result.body.length;
+  }
+  const pending = pendingAssets.get(key);
+  if (pending) return pending;
+  const request = fetchProxyResponse(target).then((result) => {
+    cacheAsset(key, result);
+    return result;
+  }).finally(() => pendingAssets.delete(key));
+  pendingAssets.set(key, request);
+  return request;
 }
 
 async function findFile(pathname) {

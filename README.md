@@ -45,6 +45,8 @@ Lalu jalankan `npm run dev` di terminal lain. Proxy berjalan pada port `8787`. D
 
 Server deployment mengaktifkan proxy terbatas untuk domain publik yang diizinkan: Wikipedia/Wikimedia, Mozilla/MDN, GitHub, DuckDuckGo, Bing, dan Hacker News. Proxy hanya menerima HTTPS, memeriksa DNS agar tidak menuju jaringan privat, membatasi ukuran respons menjadi 8 MB, membatasi redirect dan hingga 900 permintaan per menit per alamat IP sumber, serta tidak menerima port atau metode non-standar. Domain lain ditolak; gunakan tombol panah keluar untuk membuka situs langsung di browser utama. Situs pihak ketiga yang memerlukan login, cookie, SPA kompleks, DRM, atau WebSocket mungkin tidak berfungsi di iframe.
 
+Proxy menggunakan koneksi HTTPS yang dipakai ulang, cache DNS singkat, dan cache memori terbatas untuk aset statis. Cache aset berlaku hingga 10 menit dan dapat membuat kunjungan ulang lebih cepat pada instance server yang sama; cache akan kosong saat server dimulai ulang dan tidak mengurangi latensi awal dari situs eksternal.
+
 Allowlist ada di `server/proxy.mjs` (`allowedDomains`). Tambahkan hanya domain publik yang dipercaya dan butuhkan; jangan mengubah proxy menjadi penerus URL tanpa batas atau menonaktifkan validasi jaringan.
 
 ### Aplikasi desktop Electron
