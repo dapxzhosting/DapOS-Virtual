@@ -251,6 +251,11 @@ export default function Browser({ win }: AppProps) {
           terminal lain (lihat README), lalu klik ikon perisai.
         </div>
       )}
+      {status.ok && (
+        <div className="br-hint">
+          Proxy aktif dengan allowlist situs publik. Situs di luar daftar dibuka lewat tombol panah keluar; login situs pihak ketiga mungkin tidak berfungsi di iframe.
+        </div>
+      )}
 
       <div className="br-stage">
         {tabs.map((t) => (

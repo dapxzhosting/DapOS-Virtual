@@ -43,7 +43,9 @@ npm run proxy
 
 Lalu jalankan `npm run dev` di terminal lain. Proxy berjalan pada port `8787`. DapOS tetap dapat dibuka tanpa proxy, tetapi sebagian situs mungkin menolak dimuat.
 
-Server deployment pada panduan ini hanya melayani aplikasi DapOS. Proxy browsing eksternal belum tersedia di server tersebut sehingga status proxy di aplikasi akan menunjukkan tidak aktif. Tanpa proxy, situs yang memblokir iframe mungkin tidak dapat dibuka; gunakan tombol untuk membuka situs di browser terpisah.
+Server deployment mengaktifkan proxy terbatas untuk domain publik yang diizinkan: Wikipedia/Wikimedia, Mozilla/MDN, GitHub, DuckDuckGo, Bing, dan Hacker News. Proxy hanya menerima HTTPS, memeriksa DNS agar tidak menuju jaringan privat, membatasi ukuran respons menjadi 8 MB, membatasi redirect dan hingga 900 permintaan per menit per alamat IP sumber, serta tidak menerima port atau metode non-standar. Domain lain ditolak; gunakan tombol panah keluar untuk membuka situs langsung di browser utama. Situs pihak ketiga yang memerlukan login, cookie, SPA kompleks, DRM, atau WebSocket mungkin tidak berfungsi di iframe.
+
+Allowlist ada di `server/proxy.mjs` (`allowedDomains`). Tambahkan hanya domain publik yang dipercaya dan butuhkan; jangan mengubah proxy menjadi penerus URL tanpa batas atau menonaktifkan validasi jaringan.
 
 ### Aplikasi desktop Electron
 
