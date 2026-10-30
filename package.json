@@ -1,0 +1,38 @@
+{
+  "name": "webos",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "proxy": "node server/proxy.mjs",
+    "start": "node server/proxy.mjs",
+    "electron:dev": "node electron/dev.mjs",
+    "electron": "electron .",
+    "desktop": "npm run build && electron ."
+  },
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "firebase": "^13.1.0",
+    "framer-motion": "^14.7.1",
+    "lucide-react": "^1.64.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-rnd": "^10.5.3",
+    "zustand": "^5.0.16"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "electron": "^40.0.0",
+    "oxlint": "^1.89.0",
+    "typescript": "~7.0.2",
+    "vite": "^8.3.5"
+  }
+}
