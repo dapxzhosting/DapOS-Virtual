@@ -29,6 +29,7 @@ const allowedDomains = [
   "duckduckgo.com",
   "bing.com",
   "ycombinator.com",
+  "dafaalfiansyah.my.id",
 ];
 const blockedAddresses = new BlockList();
 for (const subnet of [
