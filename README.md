@@ -18,7 +18,7 @@ DapOS adalah simulasi sistem operasi berbasis web yang dibuat dengan React, Type
 
 ## Persyaratan
 
-- Node.js versi LTS yang masih didukung.
+- Node.js `24.12.0` atau lebih baru (diperlukan oleh dependensi Firebase pada lockfile saat ini).
 - npm (sudah disertakan bersama Node.js).
 - Firebase hanya diperlukan jika ingin menggunakan sinkronisasi cloud.
 
@@ -81,11 +81,12 @@ Server menggunakan port dari environment variable `PORT` yang disediakan platfor
 1. Pastikan folder `webos` (folder yang berisi `package.json`) sudah di-push ke GitHub.
 2. Di Railway, buat project baru dari repository GitHub tersebut.
 3. Jika repository memiliki folder `webos` di dalamnya, atur **Root Directory** service menjadi `/webos`.
-4. Di pengaturan service Railway, tambahkan enam variabel `VITE_FIREBASE_*` yang tercantum di `.env.example`. Gunakan nilai dari Firebase Console > Project settings > Your apps > Web app.
-5. Pastikan Firebase Authentication Email/Password dan Firestore Database sudah aktif pada proyek yang sama.
-6. Deploy. `railway.json` mengatur build `npm run build`, start `npm start`, dan health check `/health`.
-7. Setelah service berstatus aktif, buat domain publik dari pengaturan **Networking > Generate Domain**, lalu buka URL tersebut di komputer maupun HP.
-8. Tambahkan domain Railway tersebut pada Firebase Console > Authentication > Settings > Authorized domains, kemudian deploy ulang jika variabel environment diubah.
+4. Pastikan build menggunakan Node.js `24.12.0` atau lebih baru. `package.json` menetapkan versi minimum melalui `engines.node`; jika Railway masih memakai Node.js 18, atur variabel service `NIXPACKS_NODE_VERSION` ke versi `24` atau lebih baru.
+5. Di pengaturan service Railway, tambahkan enam variabel `VITE_FIREBASE_*` yang tercantum di `.env.example`. Gunakan nilai dari Firebase Console > Project settings > Your apps > Web app.
+6. Pastikan Firebase Authentication Email/Password dan Firestore Database sudah aktif pada proyek yang sama.
+7. Deploy. `railway.json` mengatur build `npm run build`, start `npm start`, dan health check `/health`.
+8. Setelah service berstatus aktif, buat domain publik dari pengaturan **Networking > Generate Domain**, lalu buka URL tersebut di komputer maupun HP.
+9. Tambahkan domain Railway tersebut pada Firebase Console > Authentication > Settings > Authorized domains, kemudian deploy ulang jika variabel environment diubah.
 
 Jangan isi Firebase service-account/private key ke environment `VITE_*`; hanya konfigurasi Firebase Web yang boleh dibundel di frontend. Jangan commit `.env.local` ke repository.
 
