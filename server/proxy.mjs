@@ -30,6 +30,8 @@ const allowedDomains = [
   "bing.com",
   "ycombinator.com",
   "dafaalfiansyah.my.id",
+  "fonts.googleapis.com",
+  "fonts.gstatic.com",
 ];
 const blockedAddresses = new BlockList();
 for (const subnet of [
@@ -145,6 +147,17 @@ function rewriteHtml(html, baseUrl) {
   );
 }
 
+function rewriteJavaScript(script, baseUrl) {
+  const withModules = script.replace(
+    /(\b(?:from|import)\s*(?:\(\s*)?)(["'])(\.{1,2}\/[^"']+\.m?js(?:\?[^"']*)?)\2(\s*\)?)/g,
+    (_, prefix, quote, value, suffix) => `${prefix}${quote}${proxyPath(new URL(value, baseUrl).href)}${quote}${suffix}`
+  );
+  return withModules.replace(
+    /(["'])(\/[^"'`\s]*\.(?:glb|gltf|png|jpe?g|webp|gif|svg|ico|woff2?|ttf|otf)(?:[?#][^"']*)?)\1/gi,
+    (_, quote, value) => `${quote}${proxyPath(new URL(value, baseUrl).href)}${quote}`
+  );
+}
+
 function takeRateLimit(request, response) {
   const ip = request.socket.remoteAddress ?? "unknown";
   const now = Date.now();
@@ -246,6 +259,8 @@ async function fetchProxyResponse(target, redirects = 0) {
     body = Buffer.from(rewriteHtml(body.toString("utf8"), target.href));
   } else if (mime === "text/css") {
     body = Buffer.from(rewriteCss(body.toString("utf8"), target.href));
+  } else if (/^(text|application)\/(javascript|x-javascript)$/.test(mime)) {
+    body = Buffer.from(rewriteJavaScript(body.toString("utf8"), target.href));
   }
   return { status, contentType, body };
 }
@@ -348,7 +363,7 @@ const server = createServer(async (request, response) => {
         "content-type": result.contentType,
         "content-length": result.body.length,
         "cache-control": "private, max-age=60",
-        "content-security-policy": "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' data: blob:; form-action 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'",
+        "content-security-policy": "default-src 'self' data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self'; media-src 'self' data: blob:; form-action 'self'; frame-src 'none'; object-src 'none'; base-uri 'none'",
         "x-content-type-options": "nosniff",
         "access-control-allow-origin": "*",
       });
